@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: LogPilot API
+  version: 0.1.0
+  description: 智能日志诊断 Agent 的 MVP API。
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/documents:
+    post:
+      summary: 上传 Markdown 知识文档
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                  maxLength: 200
+      responses:
+        "201":
+          description: 文档索引完成
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "413": { $ref: "#/components/responses/PayloadTooLarge" }
+  /api/v1/diagnoses:
+    post:
+      summary: 执行普通诊断
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosisRequest"
+      responses:
+        "200":
+          description: 诊断完成
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosisResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/v1/diagnoses/stream:
+    post:
+      summary: 通过 SSE 执行流式诊断
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosisRequest"
+      responses:
+        "200":
+          description: SSE 事件流
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+  /api/v1/sessions/{sessionID}:
+    get:
+      summary: 查询会话及消息
+      parameters:
+        - name: sessionID
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: 会话详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "404":
+          description: 会话不存在
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /healthz:
+    get:
+      summary: 存活检查
+      responses:
+        "200": { description: 进程存活 }
+  /readyz:
+    get:
+      summary: 就绪检查
+      responses:
+        "200": { description: 依赖就绪 }
+        "503": { description: 至少一个依赖未就绪 }
+components:
+  schemas:
+    DiagnosisRequest:
+      type: object
+      required: [question]
+      properties:
+        session_id: { type: string, format: uuid }
+        question: { type: string, minLength: 1, maxLength: 4000 }
+        logs: { type: string, maxLength: 65536 }
+        service: { type: string, maxLength: 100 }
+    DiagnosisResponse:
+      type: object
+      required: [session_id, diagnosis_id, summary, causes, steps, warnings, evidence, tool_calls, rounds, created_at]
+      properties:
+        session_id: { type: string, format: uuid }
+        diagnosis_id: { type: string, format: uuid }
+        summary: { type: string }
+        causes: { type: array, items: { type: string } }
+        steps: { type: array, items: { type: string } }
+        warnings: { type: array, items: { type: string } }
+        evidence: { type: array, items: { $ref: "#/components/schemas/Evidence" } }
+        tool_calls: { type: array, items: { $ref: "#/components/schemas/ToolCall" } }
+        rounds: { type: integer, minimum: 1, maximum: 6 }
+        created_at: { type: string, format: date-time }
+    Evidence:
+      type: object
+      properties:
+        type: { type: string, enum: [document, log, health] }
+        title: { type: string }
+        chunk_index: { type: integer }
+        score: { type: number, format: float }
+    ToolCall:
+      type: object
+      properties:
+        name: { type: string }
+        status: { type: string, enum: [succeeded, failed] }
+        duration_ms: { type: integer, minimum: 0 }
+    DocumentResponse:
+      type: object
+      required: [document_id, title, status, chunk_count, duplicated]
+      properties:
+        document_id: { type: string, format: uuid }
+        title: { type: string }
+        status: { type: string, enum: [processing, ready, failed] }
+        chunk_count: { type: integer, minimum: 0 }
+        duplicated: { type: boolean }
+    SessionResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              role: { type: string, enum: [user, assistant, tool] }
+              content: { type: string }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    PayloadTooLarge:
+      description: 请求体超过限制
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    TooManyRequests:
+      description: 并发诊断达到上限
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
