@@ -6,7 +6,7 @@
 
 **Architecture:** Use a modular monolith with manual constructor injection at `cmd/server/main.go`. Define small interfaces at consumer boundaries; store business metadata in SQLite and rebuildable vectors in Qdrant.
 
-**Tech Stack:** Go 1.23+, Gin, SQLite, Qdrant, OpenAI-compatible HTTP APIs, Ollama, Prometheus, Docker Compose.
+**Tech Stack:** Go 1.23+, Gin, SQLite, Qdrant, Eino, DeepSeek API, Prometheus, Docker Compose.
 
 ## Global Constraints
 
@@ -88,11 +88,11 @@
 - [ ] Run `go test ./internal/document -v`; expect PASS.
 - [ ] Commit with `git commit -m "feat: add document indexing workflow"`.
 
-### Task 4: Add Ollama and Qdrant adapters
+### Task 4: Add embedding and Qdrant adapters
 
 **Files:**
-- Create: `logpilot/internal/embedding/ollama.go`
-- Create: `logpilot/internal/embedding/ollama_test.go`
+- Create: `logpilot/internal/embedding/hash.go`
+- Create: `logpilot/internal/embedding/hash_test.go`
 - Create: `logpilot/internal/vector/qdrant.go`
 - Create: `logpilot/internal/vector/qdrant_test.go`
 
@@ -101,9 +101,9 @@
 
 - [ ] Use `httptest.Server` to test request payloads, response decoding, non-2xx responses, timeouts, response-size limits, and context cancellation.
 - [ ] Run `go test ./internal/embedding ./internal/vector -v`; expect failure before adapters exist.
-- [ ] Implement HTTP adapters with injected `*http.Client`, no global clients, and deterministic Qdrant point IDs.
+- [ ] Implement deterministic local feature hashing and a Qdrant HTTP adapter with deterministic point IDs.
 - [ ] Run `go test ./internal/embedding ./internal/vector -v`; expect PASS.
-- [ ] Commit with `git commit -m "feat: integrate ollama and qdrant"`.
+- [ ] Commit with `git commit -m "feat: integrate embedding and qdrant"`.
 
 ### Task 5: Implement business tools with Eino
 
@@ -205,7 +205,7 @@
 - Produces: a three-service local environment and repeatable smoke command.
 
 - [ ] Add a multi-stage, non-root Docker image and health checks.
-- [ ] Configure persistent volumes for SQLite, Qdrant, and Ollama; do not bake secrets into images.
+- [ ] Configure persistent volumes for SQLite and Qdrant; inject the DeepSeek key only through the process environment.
 - [ ] Write a PowerShell smoke script that waits for readiness, uploads the runbook, performs a diagnosis, queries the session, and fails on non-2xx responses.
 - [ ] Run `docker compose up --build -d`; expect all containers healthy.
 - [ ] Run `powershell -ExecutionPolicy Bypass -File scripts/smoke.ps1`; expect `SMOKE TEST PASSED`.

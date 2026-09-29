@@ -21,10 +21,10 @@ LogPilot 是一个面向开发者的智能日志诊断 Agent。用户提交错�
 - 架构：模块化单体，避免小项目过度微服务化。
 - 依赖注入：手工构造函数注入，依赖关系在 `cmd/server/main.go` 统一装配。
 - Agent：使用 CloudWeGo Eino 的 ReAct Agent、ChatModel 和 Tool 抽象，避免重复实现模型编排。
-- 模型：通过 OpenAI 兼容接口访问云模型或 Ollama。
+- 模型：通过 OpenAI 兼容接口访问 DeepSeek API，密钥仅从环境变量读取。
 - 检索：Qdrant 保存文档向量，SQLite 保存文档元数据、会话和诊断记录。
 - 流式输出：SSE；不引入 WebSocket。
-- 部署：Docker Compose 启动 LogPilot、Qdrant 和 Ollama。
+- 部署：Docker Compose 启动 LogPilot 与 Qdrant；模型使用外部 API。
 
 ## 范围约束
 

@@ -1,0 +1,18 @@
+# LogPilot
+
+Go application for evidence-based log diagnosis using CloudWeGo Eino.
+
+## Read first
+
+- `README.md`: setup, architecture, configuration, and API overview.
+- `docs/design/01-软件需求规格说明书.md`: normative requirements.
+- `docs/design/02-概要设计说明书.md`: architecture and boundaries.
+- `docs/design/openapi.yaml`: HTTP contract.
+- `docs/plans/2026-09-29-logpilot-mvp.md`: implementation history.
+
+## Constraints
+
+- Never commit API keys.
+- Do not add shell execution or arbitrary URL tools.
+- Keep Agent MaxStep at 6 and diagnosis timeout at 60 seconds.
+- Define interfaces at consuming packages and wire dependencies in `cmd/server`.
