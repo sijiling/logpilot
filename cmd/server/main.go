@@ -45,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer repository.Close()
-	embedder, err := embedding.NewOllama(&http.Client{Timeout: 20 * time.Second}, cfg.EmbedBaseURL, cfg.EmbedModel, cfg.EmbedDimension)
+	embedder, err := embedding.NewHash(cfg.EmbedDimension)
 	if err != nil {
 		logger.Error("create embedder", "error", err)
 		os.Exit(1)
@@ -53,6 +53,10 @@ func main() {
 	vectorStore, err := vector.NewQdrant(&http.Client{Timeout: 5 * time.Second}, cfg.QdrantURL, "logpilot_documents")
 	if err != nil {
 		logger.Error("create vector store", "error", err)
+		os.Exit(1)
+	}
+	if err := vectorStore.EnsureCollection(ctx, cfg.EmbedDimension); err != nil {
+		logger.Error("initialize vector collection", "error", err)
 		os.Exit(1)
 	}
 	chatModel, err := llm.NewChatModel(ctx, cfg)

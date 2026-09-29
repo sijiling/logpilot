@@ -17,8 +17,6 @@ type Config struct {
 	LLMBaseURL      string
 	LLMAPIKey       string
 	LLMModel        string
-	EmbedBaseURL    string
-	EmbedModel      string
 	EmbedDimension  int
 	QdrantURL       string
 	ServiceTargets  map[string]string
@@ -43,8 +41,6 @@ func Load() (Config, error) {
 		LLMBaseURL:      strings.TrimSpace(os.Getenv("LOGPILOT_LLM_BASE_URL")),
 		LLMAPIKey:       os.Getenv("LOGPILOT_LLM_API_KEY"),
 		LLMModel:        strings.TrimSpace(os.Getenv("LOGPILOT_LLM_MODEL")),
-		EmbedBaseURL:    strings.TrimSpace(os.Getenv("LOGPILOT_EMBED_BASE_URL")),
-		EmbedModel:      strings.TrimSpace(os.Getenv("LOGPILOT_EMBED_MODEL")),
 		EmbedDimension:  dimension,
 		QdrantURL:       valueOrDefault("LOGPILOT_QDRANT_URL", "http://qdrant:6333"),
 		ServiceTargets:  targets,
@@ -57,8 +53,6 @@ func Load() (Config, error) {
 	}{
 		{"LOGPILOT_LLM_BASE_URL", cfg.LLMBaseURL},
 		{"LOGPILOT_LLM_MODEL", cfg.LLMModel},
-		{"LOGPILOT_EMBED_BASE_URL", cfg.EmbedBaseURL},
-		{"LOGPILOT_EMBED_MODEL", cfg.EmbedModel},
 	}
 	for _, item := range required {
 		if item.value == "" {
@@ -79,6 +73,9 @@ func valueOrDefault(key, fallback string) string {
 
 func positiveInt(key string) (int, error) {
 	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		value = "384"
+	}
 	dimension, err := strconv.Atoi(value)
 	if err != nil || dimension <= 0 {
 		return 0, fmt.Errorf("%s must be a positive integer", key)

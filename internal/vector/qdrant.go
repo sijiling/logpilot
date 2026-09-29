@@ -25,6 +25,27 @@ type Qdrant struct {
 	collection string
 }
 
+// EnsureCollection creates the configured cosine-similarity collection when absent.
+func (q *Qdrant) EnsureCollection(ctx context.Context, dimension int) error {
+	endpoint := q.baseURL + "/collections/" + q.collection
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("vector: create collection lookup: %w", err)
+	}
+	resp, err := q.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("vector: lookup collection: %w", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("vector: collection lookup status %d", resp.StatusCode)
+	}
+	return q.doJSON(ctx, http.MethodPut, "/collections/"+q.collection, map[string]any{"vectors": map[string]any{"size": dimension, "distance": "Cosine"}}, nil)
+}
+
 // NewQdrant validates and creates a Qdrant adapter.
 func NewQdrant(client *http.Client, baseURL, collection string) (*Qdrant, error) {
 	parsed, err := url.ParseRequestURI(baseURL)

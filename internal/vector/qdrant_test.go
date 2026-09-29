@@ -60,3 +60,26 @@ func TestQdrantReturnsStatusError(t *testing.T) {
 		t.Fatal("Search() error = nil")
 	}
 }
+
+func TestQdrantEnsureCollectionCreatesMissingCollection(t *testing.T) {
+	var created bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPut {
+			created = true
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+			return
+		}
+	}))
+	defer server.Close()
+	store, _ := NewQdrant(server.Client(), server.URL, "documents")
+	if err := store.EnsureCollection(context.Background(), 384); err != nil {
+		t.Fatalf("EnsureCollection() error: %v", err)
+	}
+	if !created {
+		t.Fatal("collection was not created")
+	}
+}
