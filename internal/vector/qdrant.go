@@ -85,6 +85,23 @@ func (q *Qdrant) DeleteDocument(ctx context.Context, documentID string) error {
 	return q.doJSON(ctx, http.MethodPost, "/collections/"+q.collection+"/points/delete?wait=true", filter, nil)
 }
 
+// Ready checks whether the configured collection can be reached.
+func (q *Qdrant) Ready(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, q.baseURL+"/collections/"+q.collection, nil)
+	if err != nil {
+		return fmt.Errorf("vector: create readiness request: %w", err)
+	}
+	resp, err := q.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("vector: readiness request: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("vector: readiness status %d", resp.StatusCode)
+	}
+	return nil
+}
+
 func (q *Qdrant) doJSON(ctx context.Context, method, path string, input, output any) error {
 	payload, err := json.Marshal(input)
 	if err != nil {

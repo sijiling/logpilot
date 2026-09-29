@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -51,5 +53,16 @@ func TestServerTimeouts(t *testing.T) {
 	}
 	if httpServer.IdleTimeout != 60*time.Second {
 		t.Errorf("IdleTimeout = %s, want 60s", httpServer.IdleTimeout)
+	}
+}
+
+func TestServerReadinessFailure(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	server := New(config.Config{HTTPAddr: ":0"}, logger, WithReadiness(func(context.Context) error { return errors.New("database down") }))
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	server.Handler().ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusServiceUnavailable)
 	}
 }
