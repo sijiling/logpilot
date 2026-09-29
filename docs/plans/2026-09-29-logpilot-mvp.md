@@ -77,7 +77,7 @@
 
 **Interfaces:**
 - Consumes: document records from Task 2.
-- Produces: `document.Chunk(text string, target, overlap int) []Chunk`.
+- Produces: `document.SplitMarkdown(text string, target, overlap int) []Chunk`.
 - Produces: `embedding.Embedder.Embed(context.Context, []string) ([][]float32, error)`.
 - Produces: `vector.Store.Upsert`, `Search`, and `DeleteDocument`.
 
