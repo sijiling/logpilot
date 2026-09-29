@@ -46,6 +46,9 @@ func (r *SQLiteRepository) Close() error {
 	return r.db.Close()
 }
 
+// DB exposes the shared connection pool to other SQLite-backed repositories.
+func (r *SQLiteRepository) DB() *sql.DB { return r.db }
+
 // Create inserts a new session.
 func (r *SQLiteRepository) Create(ctx context.Context, session Session) error {
 	_, err := r.db.ExecContext(ctx,
